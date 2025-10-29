@@ -1,11 +1,14 @@
 package com.example.portfoliospring1.service;
 
 import com.example.portfoliospring1.controller.response.BaseException;
+import com.example.portfoliospring1.controller.response.BaseResponse;
 import com.example.portfoliospring1.controller.response.BaseResponseStatusEnum;
 import com.example.portfoliospring1.domain.dto.UserDto;
 import com.example.portfoliospring1.domain.dto.request.AddUserDto;
+import com.example.portfoliospring1.domain.dto.request.LoginByEmailDto;
 import com.example.portfoliospring1.domain.entity.User;
 import com.example.portfoliospring1.repository.UserRepository;
+import com.example.portfoliospring1.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
     public UserDto getUser(String nickname){
         User user = userRepository.findByNickname(nickname);
@@ -32,6 +36,8 @@ public class UserService {
 
     public List<UserDto> getUsers() {
         List<User> users = userRepository.findAll();
+
+        System.out.println(jwtUtil.generateToken(1L,"nickname hi", "email hi"));
 
         return users.stream().map(user -> new UserDto(user)).collect(Collectors.toList());
         // return users.stream().map(UserDto::new).collect(Collectors.toList());
@@ -75,4 +81,14 @@ public class UserService {
         return true;
     }
 
+    public String login(LoginByEmailDto loginByEmailDto){
+        try{
+            User user = userRepository.findByEmailAndPassword(loginByEmailDto.getEmail(), loginByEmailDto.getPassword())
+                    .orElseThrow();
+            return jwtUtil.generateToken(user.getId(), user.getNickname(), user.getEmail());
+        }catch (Exception e){
+            throw new BaseException(BaseResponseStatusEnum.FAILED_LOGIN);
+        }
+
+    }
 }
