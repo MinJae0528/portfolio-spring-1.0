@@ -20,13 +20,18 @@ public class UserController {
     }
 
     @GetMapping("/get-users")
-    public BaseResponse<List<UserDto>> getUser(){
+    public BaseResponse<List<UserDto>> getUsers(){
         return new BaseResponse<>(userService.getUsers());
     }
 
     @PostMapping("/add-user")
     public BaseResponse<Long> addUser(@RequestBody AddUserDto addUserDto){
         return new BaseResponse<>(userService.addUser(addUserDto));
+    }
+
+    @GetMapping("/is-valid-nickname")
+    public BaseResponse<Boolean> isValidNickname(@RequestParam String nickname){
+        return new BaseResponse<>(userService.isValidNickname(nickname));
     }
 
 }
