@@ -1,29 +1,62 @@
 package com.example.portfoliospring1.config.filter;
 
+import com.example.portfoliospring1.config.auth.JwtUserPrincipal;
+import com.example.portfoliospring1.util.JwtUtil;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    private final JwtUtil jwtUtil;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException{
-        System.out.println("JwtAuthFilter doFilterInternal");
 
-        // jwt 검증
-        // 1. 성공
-        // SecurityContextHolder.getContext().setAuthentication(auth)
-        // dofilter
+        String accessToken = request.getHeader("Access-Token");
 
-        // 2. 실패 에러 던지기
+        if(accessToken != null){
+            try{
+                Jws<Claims> jws = jwtUtil.parseToken(accessToken);
+                Claims body = jws.getBody();
+
+                Long userId = (body.getSubject() == null || body.getSubject().equals("null")) ? null : Long.parseLong(body.getSubject());
+
+                JwtUserPrincipal principal = new JwtUserPrincipal(
+                        userId,
+                        body.get("nickname", String.class),
+                        body.get("email", String.class),
+                        body.get("providerId", String.class)
+                );
+
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal,
+                        null,
+                        Collections.emptyList()
+                );
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (JwtException e){
+                // 시크릿 키 잘못됨. 서명이 유효하지 않은 경우
+                // 만료
+                e.printStackTrace();
+            }
+        }
 
         filterChain.doFilter(request,response);
     }
